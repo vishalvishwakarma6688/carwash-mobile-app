@@ -4,6 +4,10 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_run:
+    workflows: ["Auto Bump & Tag Version"]
+    types:
+      - completed
   workflow_dispatch:
 
 permissions:
@@ -12,10 +16,14 @@ permissions:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
+    # Run if triggered by tag push, manual dispatch, or successful completion of Auto Bump
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
