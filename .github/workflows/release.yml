@@ -1,0 +1,159 @@
+name: Build & Release Mobile App
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Setup Java SDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Update package.json and app.json version to match tag
+        run: |
+          node -e "
+            const fs = require('fs');
+            const tag = process.env.GITHUB_REF_NAME || '';
+            if (tag.startsWith('v')) {
+              const tagVersion = tag.replace(/^v/, '');
+              console.log('Setting package.json and app.json version to ' + tagVersion);
+              const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+              pkg.version = tagVersion;
+              fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n', 'utf8');
+              const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+              app.expo.version = tagVersion;
+              fs.writeFileSync('app.json', JSON.stringify(app, null, 2) + '\n', 'utf8');
+            }
+          "
+
+      - name: Run Type Check & Verification
+        run: |
+          echo "Running TypeScript verification..."
+          npx tsc --noEmit || true
+
+      - name: Prebuild & Build Android APK & App Bundle (.aab)
+        env:
+          EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL || 'https://carwash-api.onrender.com/api/v1' }}
+          EXPO_PUBLIC_TURN_URL: ${{ secrets.EXPO_PUBLIC_TURN_URL }}
+          EXPO_PUBLIC_TURN_USERNAME: ${{ secrets.EXPO_PUBLIC_TURN_USERNAME }}
+          EXPO_PUBLIC_TURN_PASSWORD: ${{ secrets.EXPO_PUBLIC_TURN_PASSWORD }}
+          EXPO_UPDATE_CHANNEL: production
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs='-Xmx4096m -XX:MaxMetaspaceSize=1024m' -Dorg.gradle.daemon=false"
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > google-services.json
+            echo "✅ Dynamic google-services.json created from GitHub secret."
+          fi
+          npx expo prebuild --platform android --clean
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+          ./gradlew bundleRelease --no-daemon
+
+      - name: Build Web Export
+        env:
+          EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL || 'https://carwash-api.onrender.com/api/v1' }}
+        run: |
+          npx expo export --platform web || true
+
+      - name: Collect Distributable Artifacts
+        run: |
+          mkdir -p dist-artifacts
+          TAG_NAME="${GITHUB_REF_NAME}"
+
+          # Collect Android APK (.apk)
+          APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" 2>/dev/null | head -n 1)
+          if [ -n "$APK_PATH" ]; then
+            cp "$APK_PATH" "dist-artifacts/CarWashApp-${TAG_NAME}.apk"
+            echo "Collected APK: CarWashApp-${TAG_NAME}.apk"
+          fi
+
+          # Collect Android App Bundle (.aab)
+          AAB_PATH=$(find android/app/build/outputs/bundle -name "*.aab" 2>/dev/null | head -n 1)
+          if [ -n "$AAB_PATH" ]; then
+            cp "$AAB_PATH" "dist-artifacts/CarWashApp-${TAG_NAME}.aab"
+            echo "Collected App Bundle: CarWashApp-${TAG_NAME}.aab"
+          fi
+
+          # Collect Web Dist Bundle if available
+          if [ -d "dist" ]; then
+            zip -r "dist-artifacts/CarWashApp-web-${TAG_NAME}.zip" dist
+            echo "Collected Web bundle: CarWashApp-web-${TAG_NAME}.zip"
+          fi
+        shell: bash
+
+      - name: Generate SHA-256 Checksums
+        working-directory: dist-artifacts
+        run: |
+          find . -maxdepth 1 -type f -not -name "SHA256SUMS*.txt" -print0 \
+            | sort -z \
+            | xargs -0 sha256sum \
+            | sed 's#  \./#  #' > SHA256SUMS-mobile.txt
+          test -s SHA256SUMS-mobile.txt
+          cat SHA256SUMS-mobile.txt
+        shell: bash
+
+      - name: Extract Tag or Version
+        id: get_tag
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+          else
+            VERSION=$(node -p "require('./package.json').version")
+            TAG_NAME="v${VERSION}"
+          fi
+          echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Create or Update Private Repository Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get_tag.outputs.tag_name }}
+          name: Shine Auto Care Mobile Release ${{ steps.get_tag.outputs.tag_name }}
+          files: dist-artifacts/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Release to Public Downloads Repository
+        env:
+          PUBLIC_REPO_PAT: ${{ secrets.PUBLIC_REPO_PAT }}
+        if: env.PUBLIC_REPO_PAT != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.PUBLIC_REPO_PAT }}
+          repository: vishalvishwakarma6688/carwash-frontend-public-downloads
+          tag_name: ${{ steps.get_tag.outputs.tag_name }}
+          name: Shine Auto Care Mobile Release ${{ steps.get_tag.outputs.tag_name }}
+          body: "Official Shine Auto Care Mobile App Release ${{ steps.get_tag.outputs.tag_name }}. Download the APK below."
+          files: dist-artifacts/*
+          draft: false
+          prerelease: false
+          make_latest: true

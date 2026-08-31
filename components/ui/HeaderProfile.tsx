@@ -9,7 +9,6 @@ interface HeaderProfileProps {
   userPhone?: string;
   tierLabel?: string;
   onNotificationPress?: () => void;
-  onQRPress?: () => void;
 }
 
 const STATUS_BAR_HEIGHT = Platform.OS === 'android' ? (StatusBar.currentHeight || 28) + 10 : 16;
@@ -19,7 +18,6 @@ export const HeaderProfile: React.FC<HeaderProfileProps> = ({
   userPhone = 'Not logged in',
   tierLabel = 'Welcome • Tap Profile to Sign In',
   onNotificationPress,
-  onQRPress,
 }) => {
   const avatarLetter = (userName || 'G').charAt(0).toUpperCase();
 
@@ -33,14 +31,13 @@ export const HeaderProfile: React.FC<HeaderProfileProps> = ({
           </View>
           <View style={styles.nameContainer}>
             <Text style={styles.greetingText}>Welcome back</Text>
-            <Text style={styles.phoneText} numberOfLines={1}>{userPhone || userName}</Text>
+            <Text style={styles.phoneText} numberOfLines={1} ellipsizeMode="tail" adjustsFontSizeToFit>
+              {userName}
+            </Text>
           </View>
         </View>
 
         <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.iconButton} onPress={onQRPress} activeOpacity={0.7}>
-            <Ionicons name="qr-code-outline" size={20} color={COLORS.textPrimary} />
-          </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton} onPress={onNotificationPress} activeOpacity={0.7}>
             <Ionicons name="notifications-outline" size={20} color={COLORS.textPrimary} />
           </TouchableOpacity>

@@ -90,13 +90,18 @@ export default function HomeScreen() {
             ) : (
               <View>
                 <View style={styles.heroHeader}>
-                  <View>
+                  <View style={styles.heroUserInfo}>
                     <Text style={styles.heroSubTitle}>Account Profile</Text>
-                    <Text style={styles.userNameLarge}>{profile.fullName}</Text>
-                    <Text style={styles.userEmailText}>{profile.email}</Text>
+                    <Text style={styles.userNameLarge} numberOfLines={1} ellipsizeMode="tail">
+                      {profile.fullName}
+                    </Text>
+                    <Text style={styles.userEmailText} numberOfLines={1} ellipsizeMode="tail">
+                      {profile.email}
+                    </Text>
                   </View>
+
                   <View style={styles.badgePill}>
-                    <Ionicons name="shield-checkmark" size={14} color={COLORS.primaryCyan} />
+                    <Ionicons name="shield-checkmark" size={13} color={COLORS.primaryCyan} />
                     <Text style={styles.badgeText}>VERIFIED</Text>
                   </View>
                 </View>
@@ -130,8 +135,9 @@ const styles = StyleSheet.create({
   heroSubText: { color: COLORS.textSecondary, fontSize: 14, marginTop: 6, lineHeight: 20 },
   authBtnRow: { flexDirection: 'row', gap: 10, marginTop: 18 },
   heroHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  heroUserInfo: { flex: 1, marginRight: 8 },
   heroSubTitle: { color: COLORS.textSecondary, fontSize: 13, fontWeight: '500' },
-  userNameLarge: { color: COLORS.textPrimary, fontSize: 24, fontWeight: '900', marginTop: 4 },
+  userNameLarge: { color: COLORS.textPrimary, fontSize: 22, fontWeight: '900', marginTop: 4 },
   userEmailText: { color: COLORS.textSecondary, fontSize: 13, marginTop: 2 },
   badgePill: {
     flexDirection: 'row',
@@ -140,11 +146,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 245, 212, 0.12)',
     borderColor: 'rgba(0, 245, 212, 0.3)',
     borderWidth: 1,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: RADIUS.full,
+    alignSelf: 'flex-start',
   },
-  badgeText: { color: COLORS.primaryCyan, fontSize: 11, fontWeight: '800' },
+  badgeText: { color: COLORS.primaryCyan, fontSize: 10, fontWeight: '800' },
   sectionContainer: { paddingHorizontal: SPACING.md, marginTop: 24 },
   sectionTitle: { color: COLORS.textPrimary, fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
 });
