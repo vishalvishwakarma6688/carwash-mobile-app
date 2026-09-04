@@ -19,22 +19,31 @@ import { CustomButton } from '../../components/ui/CustomButton';
 import { useGetProfile, useLogout } from '../../hooks/useAuth';
 import { useGetCustomerVehicles, useAddVehicle } from '../../hooks/useVehicles';
 import { useGetPayments } from '../../hooks/usePayments';
+import { useGetServices } from '../../hooks/useServices';
 import { useRouter } from 'expo-router';
 
 const STATUS_BAR_OFFSET = Platform.OS === 'android' ? (StatusBar.currentHeight || 28) + 8 : 12;
 
-type ActiveSubView = 'main' | 'vehicles' | 'add-vehicle' | 'payments' | 'loyalty' | 'settings';
+type ActiveSubView = 'main' | 'vehicles' | 'add-vehicle' | 'payments' | 'loyalty' | 'settings' | 'business-info' | 'service-catalog' | 'staff-roster';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { data: profile } = useGetProfile();
   const logoutMutation = useLogout();
 
+  const isBusinessOwner =
+    profile?.role === 'BUSINESS_OWNER' ||
+    profile?.role === 'BRANCH_MANAGER' ||
+    profile?.role === 'SUPER_ADMIN';
+
   const [activeSubView, setActiveSubView] = useState<ActiveSubView>('main');
 
   // Customer Vehicles Data
   const { data: vehicles, isLoading: vehiclesLoading } = useGetCustomerVehicles(profile?.id);
   const addVehicleMutation = useAddVehicle();
+
+  // Business Services Data
+  const { data: services, isLoading: servicesLoading } = useGetServices(profile?.businessId);
 
   // Payments Data
   const { data: payments, isLoading: paymentsLoading } = useGetPayments();
@@ -85,12 +94,23 @@ export default function ProfileScreen() {
     );
   };
 
-  const menuItems = [
+  // Customer Menu Items
+  const customerMenuItems = [
     { id: 'vehicles' as ActiveSubView, label: 'My Vehicles Registry', icon: 'car-sport-outline' },
     { id: 'payments' as ActiveSubView, label: 'Payment Methods & Receipts', icon: 'card-outline' },
     { id: 'loyalty' as ActiveSubView, label: 'Loyalty Rewards & Points', icon: 'gift-outline' },
     { id: 'settings' as ActiveSubView, label: 'App Settings & Preferences', icon: 'settings-outline' },
   ];
+
+  // Business Owner Menu Items
+  const businessMenuItems = [
+    { id: 'business-info' as ActiveSubView, label: 'Business & Branch Info', icon: 'storefront-outline' },
+    { id: 'service-catalog' as ActiveSubView, label: 'Service & Pricing Catalog', icon: 'options-outline' },
+    { id: 'staff-roster' as ActiveSubView, label: 'Employee & Staff Roster', icon: 'people-outline' },
+    { id: 'settings' as ActiveSubView, label: 'App Settings & Preferences', icon: 'settings-outline' },
+  ];
+
+  const currentMenuItems = isBusinessOwner ? businessMenuItems : customerMenuItems;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -113,7 +133,10 @@ export default function ProfileScreen() {
           ) : null}
           <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>
-              {activeSubView === 'main' && 'User Account'}
+              {activeSubView === 'main' && (isBusinessOwner ? 'Business Management' : 'User Account')}
+              {activeSubView === 'business-info' && 'Business & Branch Info'}
+              {activeSubView === 'service-catalog' && 'Service Catalog'}
+              {activeSubView === 'staff-roster' && 'Employee Roster'}
               {activeSubView === 'vehicles' && 'My Vehicles'}
               {activeSubView === 'add-vehicle' && 'Register New Vehicle'}
               {activeSubView === 'payments' && 'Payment Receipts'}
@@ -122,6 +145,9 @@ export default function ProfileScreen() {
             </Text>
             <Text style={styles.headerSub}>
               {activeSubView === 'main' && 'Manage your profile and account options'}
+              {activeSubView === 'business-info' && 'View business contact details and location'}
+              {activeSubView === 'service-catalog' && 'Manage wash packages and pricing'}
+              {activeSubView === 'staff-roster' && 'Branch employee team members'}
               {activeSubView === 'vehicles' && 'Manage your personal vehicles'}
               {activeSubView === 'add-vehicle' && 'Add vehicle details for quick bookings'}
               {activeSubView === 'payments' && 'Transaction history and wash invoices'}
@@ -173,7 +199,7 @@ export default function ProfileScreen() {
             </GlassCard>
 
             <View style={styles.menuSection}>
-              {menuItems.map((item) => (
+              {currentMenuItems.map((item) => (
                 <TouchableOpacity
                   key={item.id}
                   activeOpacity={0.7}
@@ -207,6 +233,66 @@ export default function ProfileScreen() {
                 />
               </View>
             )}
+          </View>
+        )}
+
+        {/* ==================== SUB-VIEW: BUSINESS INFO ==================== */}
+        {activeSubView === 'business-info' && (
+          <View style={{ gap: 14 }}>
+            <GlassCard style={styles.itemCard}>
+              <Text style={styles.itemTitle}>Business Name</Text>
+              <Text style={styles.itemSub}>{profile?.business?.name || `${profile?.fullName}'s Car Wash`}</Text>
+            </GlassCard>
+            <GlassCard style={styles.itemCard}>
+              <Text style={styles.itemTitle}>Main Branch Location</Text>
+              <Text style={styles.itemSub}>{profile?.branch?.address || profile?.business?.address || '456 Commercial Blvd'}</Text>
+            </GlassCard>
+            <GlassCard style={styles.itemCard}>
+              <Text style={styles.itemTitle}>Owner Email & Phone</Text>
+              <Text style={styles.itemSub}>{profile?.email} • {profile?.phone || 'N/A'}</Text>
+            </GlassCard>
+          </View>
+        )}
+
+        {/* ==================== SUB-VIEW: SERVICE CATALOG ==================== */}
+        {activeSubView === 'service-catalog' && (
+          <View style={{ gap: 14 }}>
+            {servicesLoading ? (
+              <GlassCard style={styles.emptyCard}>
+                <Text style={styles.emptyText}>Loading service catalog...</Text>
+              </GlassCard>
+            ) : !services || services.length === 0 ? (
+              <GlassCard style={styles.emptyCard}>
+                <Ionicons name="water-outline" size={36} color={COLORS.textMuted} />
+                <Text style={styles.emptyTitle}>No Services Configured</Text>
+                <Text style={styles.emptyText}>Add wash services via your backend API catalog.</Text>
+              </GlassCard>
+            ) : (
+              services.map((s: any) => (
+                <GlassCard key={s.id} style={styles.itemCard}>
+                  <View style={styles.itemHeader}>
+                    <Text style={styles.itemTitle}>{s.name}</Text>
+                    <Text style={styles.itemTitle}>${Number(s.price).toFixed(2)}</Text>
+                  </View>
+                  <Text style={styles.itemSub}>Duration: {s.estimatedDurationMinutes || 30} mins</Text>
+                </GlassCard>
+              ))
+            )}
+          </View>
+        )}
+
+        {/* ==================== SUB-VIEW: STAFF ROSTER ==================== */}
+        {activeSubView === 'staff-roster' && (
+          <View style={{ gap: 14 }}>
+            <GlassCard style={styles.itemCard}>
+              <View style={styles.itemHeader}>
+                <Text style={styles.itemTitle}>{profile?.fullName}</Text>
+                <View style={styles.badgePill}>
+                  <Text style={styles.badgeText}>MANAGER / OWNER</Text>
+                </View>
+              </View>
+              <Text style={styles.itemSub}>Email: {profile?.email}</Text>
+            </GlassCard>
           </View>
         )}
 
@@ -397,7 +483,6 @@ export default function ProfileScreen() {
         {/* ==================== SUB-VIEW: SETTINGS ==================== */}
         {activeSubView === 'settings' && (
           <View style={{ gap: 12 }}>
-            {/* 1. Notifications Preferences */}
             <GlassCard style={styles.settingCard}>
               <View style={styles.settingRow}>
                 <View style={styles.settingLeft}>
@@ -416,18 +501,18 @@ export default function ProfileScreen() {
               </View>
             </GlassCard>
 
-            {/* 2. Primary Branch Selection */}
             <GlassCard style={styles.settingCard}>
               <View style={styles.settingLeft}>
                 <Ionicons name="location-outline" size={22} color={COLORS.accentEmerald} />
                 <View>
                   <Text style={styles.settingTitle}>Primary Car Wash Branch</Text>
-                  <Text style={styles.settingSub}>Shine Auto Care • Main Center Branch</Text>
+                  <Text style={styles.settingSub}>
+                    {profile?.branch?.name || 'Shine Auto Care • Main Center Branch'}
+                  </Text>
                 </View>
               </View>
             </GlassCard>
 
-            {/* 3. Theme & Appearance */}
             <GlassCard style={styles.settingCard}>
               <View style={styles.settingLeft}>
                 <Ionicons name="moon-outline" size={22} color={COLORS.accentGold} />
@@ -438,7 +523,6 @@ export default function ProfileScreen() {
               </View>
             </GlassCard>
 
-            {/* 4. Privacy & Data Security */}
             <GlassCard style={styles.settingCard}>
               <View style={styles.settingLeft}>
                 <Ionicons name="shield-checkmark-outline" size={22} color={COLORS.primaryBlue} />
@@ -449,7 +533,6 @@ export default function ProfileScreen() {
               </View>
             </GlassCard>
 
-            {/* 5. App Version Information */}
             <GlassCard style={styles.settingCard}>
               <View style={styles.settingLeft}>
                 <Ionicons name="information-circle-outline" size={22} color={COLORS.textSecondary} />

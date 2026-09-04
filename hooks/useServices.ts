@@ -9,11 +9,12 @@ export function useGetServices(businessId?: string) {
   return useQuery({
     queryKey: [SERVICES_QUERY_KEY, businessId],
     queryFn: async () => {
-      if (!businessId) return [];
-      const response = await apiClient.get(API_ENDPOINTS.SERVICES.LIST_BY_BUSINESS(businessId));
+      const url = businessId
+        ? API_ENDPOINTS.SERVICES.LIST_BY_BUSINESS(businessId)
+        : '/services';
+      const response = await apiClient.get(url);
       return response.data?.data || [];
     },
-    enabled: !!businessId,
   });
 }
 
@@ -21,10 +22,11 @@ export function useGetPackages(businessId?: string) {
   return useQuery({
     queryKey: [PACKAGES_QUERY_KEY, businessId],
     queryFn: async () => {
-      if (!businessId) return [];
-      const response = await apiClient.get(API_ENDPOINTS.SERVICES.PACKAGES.LIST(businessId));
+      const url = businessId
+        ? API_ENDPOINTS.SERVICES.PACKAGES.LIST(businessId)
+        : '/services/packages/list';
+      const response = await apiClient.get(url);
       return response.data?.data || [];
     },
-    enabled: !!businessId,
   });
 }

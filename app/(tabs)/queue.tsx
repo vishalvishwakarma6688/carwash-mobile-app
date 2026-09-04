@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, Platform, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Alert, Platform, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, SPACING } from '../../constants/theme';
 import { GlassCard } from '../../components/ui/GlassCard';
-import { useGetBranchQueue } from '../../hooks/useQueue';
+import { useGetBranchQueue, useUpdateQueueStatus } from '../../hooks/useQueue';
 import { useGetProfile } from '../../hooks/useAuth';
 
 const STATUS_BAR_OFFSET = Platform.OS === 'android' ? (StatusBar.currentHeight || 28) + 8 : 12;
@@ -11,15 +11,35 @@ const STATUS_BAR_OFFSET = Platform.OS === 'android' ? (StatusBar.currentHeight |
 export default function QueueScreen() {
   const { data: profile } = useGetProfile();
   const { data: queueItems, isLoading } = useGetBranchQueue(profile?.businessId || '');
+  const updateQueueStatusMutation = useUpdateQueueStatus();
 
+  const isBusinessStaff = profile?.role === 'BUSINESS_OWNER' || profile?.role === 'BRANCH_MANAGER' || profile?.role === 'EMPLOYEE';
   const totalQueued = queueItems?.length || 0;
+
+  const handleStatusChange = (id: string, newStatus: string) => {
+    updateQueueStatusMutation.mutate(
+      { id, status: newStatus },
+      {
+        onSuccess: () => {
+          Alert.alert('Status Updated ✨', `Wash status updated to ${newStatus.replace('_', ' ')}.`);
+        },
+        onError: (err: any) => {
+          Alert.alert('Error', err?.response?.data?.message || 'Failed to update status.');
+        },
+      }
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Live Queue Board</Text>
-          <Text style={styles.headerSub}>Real-time car wash operational workflow status</Text>
+          <Text style={styles.headerSub}>
+            {isBusinessStaff
+              ? 'Manage and update incoming car wash operational workflow'
+              : 'Real-time car wash operational workflow status'}
+          </Text>
         </View>
 
         {/* Live Status Summary Card */}
@@ -80,8 +100,32 @@ export default function QueueScreen() {
                 <View style={styles.cardFooter}>
                   <View style={styles.footerInfo}>
                     <Ionicons name="time-outline" size={14} color={COLORS.textSecondary} />
-                    <Text style={styles.footerText}>Arrival: {new Date(item.arrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+                    <Text style={styles.footerText}>
+                      Arrival: {new Date(item.arrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
                   </View>
+
+                  {/* Business Staff Status Manager Buttons */}
+                  {isBusinessStaff && (
+                    <View style={styles.actionRow}>
+                      {item.status === 'WAITING' && (
+                        <TouchableOpacity
+                          style={[styles.actionBtn, { backgroundColor: COLORS.primaryCyan }]}
+                          onPress={() => handleStatusChange(item.id, 'IN_PROGRESS')}
+                        >
+                          <Text style={[styles.actionBtnText, { color: '#000000' }]}>Start Wash</Text>
+                        </TouchableOpacity>
+                      )}
+                      {item.status === 'IN_PROGRESS' && (
+                        <TouchableOpacity
+                          style={[styles.actionBtn, { backgroundColor: COLORS.accentEmerald }]}
+                          onPress={() => handleStatusChange(item.id, 'COMPLETED')}
+                        >
+                          <Text style={[styles.actionBtnText, { color: '#000000' }]}>Complete Wash</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
                 </View>
               </GlassCard>
             ))
@@ -116,7 +160,10 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 11, fontWeight: '800' },
   vehicleTitle: { color: COLORS.textPrimary, fontSize: 17, fontWeight: '800' },
   serviceSubtitle: { color: COLORS.textSecondary, fontSize: 13, marginTop: 4 },
-  cardFooter: { marginTop: 14, paddingTop: 10, borderTopWidth: 1, borderTopColor: COLORS.glassBorder },
+  cardFooter: { marginTop: 14, paddingTop: 10, borderTopWidth: 1, borderTopColor: COLORS.glassBorder, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   footerInfo: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   footerText: { color: COLORS.textSecondary, fontSize: 12 },
+  actionRow: { flexDirection: 'row', gap: 8 },
+  actionBtn: { borderRadius: RADIUS.md, paddingHorizontal: 12, paddingVertical: 6 },
+  actionBtnText: { fontSize: 12, fontWeight: '800' },
 });

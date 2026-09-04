@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useGetProfile } from '../hooks/useAuth';
 import { COLORS, RADIUS } from '../constants/theme';
 import { GlassCard } from '../components/ui/GlassCard';
@@ -12,10 +13,10 @@ export default function IndexScreen() {
   useEffect(() => {
     if (!isLoading) {
       if (profile) {
-        // User is authenticated -> redirect directly to Home Dashboard
+        // User or Business is authenticated -> redirect automatically to Home Page
         router.replace('/(tabs)' as any);
       } else {
-        // User is not authenticated -> redirect directly to Login Page
+        // Unauthenticated -> redirect to Login Page
         router.replace('/auth/login' as any);
       }
     }
@@ -25,9 +26,9 @@ export default function IndexScreen() {
     <View style={styles.container}>
       <GlassCard style={styles.splashCard}>
         <View style={styles.logoCircle}>
-          <Text style={styles.logoText}>🚗</Text>
+          <Ionicons name="car-sport" size={32} color={COLORS.primaryCyan} />
         </View>
-        <Text style={styles.appName}>Car Wash Mobile</Text>
+        <Text style={styles.appName}>Shine Auto Care</Text>
         <Text style={styles.tagline}>Verifying Session Authentication...</Text>
         <ActivityIndicator size="large" color={COLORS.primaryCyan} style={styles.loader} />
       </GlassCard>
@@ -52,15 +53,12 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: RADIUS.full,
-    backgroundColor: 'rgba(0, 245, 212, 0.15)',
+    backgroundColor: 'rgba(0, 245, 212, 0.12)',
     borderColor: COLORS.primaryCyan,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
-  },
-  logoText: {
-    fontSize: 32,
   },
   appName: {
     color: COLORS.textPrimary,

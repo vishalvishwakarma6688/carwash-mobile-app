@@ -8,7 +8,7 @@ import { BackgroundGradientShape } from '../components/ui/BackgroundGradientShap
 import { COLORS } from '../constants/theme';
 
 export const unstable_settings = {
-  initialRouteName: 'auth',
+  initialRouteName: 'index',
 };
 
 const queryClient = new QueryClient({
@@ -37,14 +37,14 @@ export default function RootLayout() {
       <ThemeProvider value={customDarkTheme}>
         <BackgroundGradientShape>
           <Stack
-            initialRouteName="auth"
+            initialRouteName="index"
             screenOptions={{
               headerShown: false,
               contentStyle: { backgroundColor: 'transparent' },
             }}
           >
-            <Stack.Screen name="auth" options={{ headerShown: false }} />
             <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="auth" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="light" />

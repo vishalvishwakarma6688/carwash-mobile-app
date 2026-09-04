@@ -20,10 +20,15 @@ import { useRegister } from '../../hooks/useAuth';
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const [accountType, setAccountType] = useState<'CUSTOMER' | 'BUSINESS_OWNER'>('CUSTOMER');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+
+  // Business Owner Specific Fields
+  const [businessName, setBusinessName] = useState('');
+  const [branchAddress, setBranchAddress] = useState('');
 
   const registerMutation = useRegister();
 
@@ -33,15 +38,28 @@ export default function RegisterScreen() {
       return;
     }
 
+    if (accountType === 'BUSINESS_OWNER' && !businessName.trim()) {
+      Alert.alert('Validation Error', 'Please enter your Car Wash Business Name.');
+      return;
+    }
+
     registerMutation.mutate(
       {
         fullName: fullName.trim(),
         email: email.trim(),
         phone: phone.trim() || undefined,
         password,
+        role: accountType,
+        businessName: accountType === 'BUSINESS_OWNER' ? businessName.trim() : undefined,
+        branchAddress: accountType === 'BUSINESS_OWNER' ? branchAddress.trim() : undefined,
       },
       {
         onSuccess: () => {
+          const successTitle = accountType === 'BUSINESS_OWNER' ? 'Business Registered 🎉' : 'Account Created 🎉';
+          const successBody = accountType === 'BUSINESS_OWNER'
+            ? 'Your Car Wash Business & Main Branch have been set up successfully.'
+            : 'Your customer profile has been created.';
+          Alert.alert(successTitle, successBody);
           router.replace('/(tabs)' as any);
         },
         onError: (error: any) => {
@@ -62,16 +80,70 @@ export default function RegisterScreen() {
           {/* Header Brand Section */}
           <View style={styles.header}>
             <View style={styles.logoBadge}>
-              <Ionicons name="person-add" size={24} color={COLORS.primaryCyan} />
+              <Ionicons
+                name={accountType === 'BUSINESS_OWNER' ? 'business' : 'person-add'}
+                size={24}
+                color={COLORS.primaryCyan}
+              />
             </View>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Register your customer profile to book services and track status</Text>
+            <Text style={styles.title}>
+              {accountType === 'BUSINESS_OWNER' ? 'Register Business' : 'Create Account'}
+            </Text>
+            <Text style={styles.subtitle}>
+              {accountType === 'BUSINESS_OWNER'
+                ? 'List your car wash business to receive customer orders and manage queue operations'
+                : 'Register your customer profile to book services and track status'}
+            </Text>
+          </View>
+
+          {/* Account Type Segmented Toggle */}
+          <View style={styles.toggleRow}>
+            <TouchableOpacity
+              style={[styles.toggleBtn, accountType === 'CUSTOMER' && styles.toggleBtnActive]}
+              onPress={() => setAccountType('CUSTOMER')}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="person-outline"
+                size={16}
+                color={accountType === 'CUSTOMER' ? COLORS.primaryCyan : COLORS.textSecondary}
+              />
+              <Text
+                style={[styles.toggleText, accountType === 'CUSTOMER' && styles.toggleTextActive]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                Customer
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.toggleBtn, accountType === 'BUSINESS_OWNER' && styles.toggleBtnActive]}
+              onPress={() => setAccountType('BUSINESS_OWNER')}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="storefront-outline"
+                size={16}
+                color={accountType === 'BUSINESS_OWNER' ? COLORS.primaryCyan : COLORS.textSecondary}
+              />
+              <Text
+                style={[styles.toggleText, accountType === 'BUSINESS_OWNER' && styles.toggleTextActive]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                Business Owner
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Registration Form Card */}
           <GlassCard style={styles.card}>
+            {/* Owner Full Name */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Full Name</Text>
+              <Text style={styles.label}>
+                {accountType === 'BUSINESS_OWNER' ? 'Owner / Manager Name' : 'Full Name'}
+              </Text>
               <View style={styles.inputWrapper}>
                 <Ionicons name="person-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
                 <TextInput
@@ -84,6 +156,40 @@ export default function RegisterScreen() {
               </View>
             </View>
 
+            {/* Business Specific Inputs */}
+            {accountType === 'BUSINESS_OWNER' && (
+              <>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Car Wash Business Name</Text>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="business-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="e.g. Express Auto Spa"
+                      placeholderTextColor={COLORS.textMuted}
+                      value={businessName}
+                      onChangeText={setBusinessName}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Main Branch Address</Text>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="location-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="e.g. 456 Commercial Blvd, Suite 10"
+                      placeholderTextColor={COLORS.textMuted}
+                      value={branchAddress}
+                      onChangeText={setBranchAddress}
+                    />
+                  </View>
+                </View>
+              </>
+            )}
+
+            {/* Email Address */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Email Address</Text>
               <View style={styles.inputWrapper}>
@@ -100,8 +206,9 @@ export default function RegisterScreen() {
               </View>
             </View>
 
+            {/* Phone Number */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Phone Number (Optional)</Text>
+              <Text style={styles.label}>Phone Number</Text>
               <View style={styles.inputWrapper}>
                 <Ionicons name="call-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
                 <TextInput
@@ -115,6 +222,7 @@ export default function RegisterScreen() {
               </View>
             </View>
 
+            {/* Password */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Password</Text>
               <View style={styles.inputWrapper}>
@@ -131,7 +239,13 @@ export default function RegisterScreen() {
             </View>
 
             <CustomButton
-              title={registerMutation.isPending ? 'Registering...' : 'Create Account'}
+              title={
+                registerMutation.isPending
+                  ? 'Registering...'
+                  : accountType === 'BUSINESS_OWNER'
+                  ? 'Register Car Wash Business →'
+                  : 'Create Customer Account →'
+              }
               onPress={handleRegister}
               disabled={registerMutation.isPending}
               style={styles.registerButton}
@@ -163,7 +277,7 @@ const styles = StyleSheet.create({
   },
   header: {
     marginTop: 12,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   logoBadge: {
     width: 56,
@@ -174,31 +288,55 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   title: {
     color: COLORS.textPrimary,
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
   subtitle: {
     color: COLORS.textSecondary,
-    fontSize: 14,
-    marginTop: 6,
-    lineHeight: 20,
+    fontSize: 13,
+    marginTop: 4,
+    lineHeight: 18,
   },
+  toggleRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  toggleBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.glassBackground,
+    borderColor: COLORS.glassBorder,
+    borderWidth: 1,
+    borderRadius: RADIUS.md,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+  },
+  toggleBtnActive: {
+    backgroundColor: 'rgba(0, 245, 212, 0.12)',
+    borderColor: COLORS.primaryCyan,
+  },
+  toggleText: { color: COLORS.textSecondary, fontSize: 12, fontWeight: '600', flexShrink: 1 },
+  toggleTextActive: { color: COLORS.primaryCyan, fontWeight: '800' },
   card: {
-    padding: 24,
+    padding: 20,
   },
   inputGroup: {
-    marginBottom: 18,
+    marginBottom: 16,
   },
   label: {
     color: COLORS.textPrimary,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -208,7 +346,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: RADIUS.md,
     paddingHorizontal: 14,
-    height: 52,
+    height: 50,
   },
   inputIcon: {
     marginRight: 10,
