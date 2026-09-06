@@ -48,10 +48,16 @@ export function useGetProfile() {
     queryFn: async () => {
       const token = await SecureStore.getItemAsync(TOKEN_KEY);
       if (!token) return null;
-      const response = await apiClient.get(API_ENDPOINTS.AUTH.ME);
-      return response.data?.data;
+      try {
+        const response = await apiClient.get(API_ENDPOINTS.AUTH.ME);
+        return response.data?.data || null;
+      } catch (error) {
+        console.log('[Auth Session Check] Token invalid or expired:', error);
+        return null;
+      }
     },
     retry: false,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
 

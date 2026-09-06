@@ -8,19 +8,19 @@ import { GlassCard } from '../components/ui/GlassCard';
 
 export default function IndexScreen() {
   const router = useRouter();
-  const { data: profile, isLoading, isError } = useGetProfile();
+  const { data: profile, isLoading } = useGetProfile();
 
   useEffect(() => {
     if (!isLoading) {
       if (profile) {
-        // User or Business is authenticated -> redirect automatically to Home Page
+        // Authenticated session found -> Redirect straight to Home Page
         router.replace('/(tabs)' as any);
       } else {
-        // Unauthenticated -> redirect to Login Page
+        // No active session -> Redirect to Login Page
         router.replace('/auth/login' as any);
       }
     }
-  }, [profile, isLoading, isError]);
+  }, [profile, isLoading]);
 
   return (
     <View style={styles.container}>

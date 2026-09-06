@@ -16,14 +16,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, SPACING } from '../../constants/theme';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { CustomButton } from '../../components/ui/CustomButton';
-import { useLogin } from '../../hooks/useAuth';
+import { useLogin, useGetProfile } from '../../hooks/useAuth';
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  const { data: profile } = useGetProfile();
   const loginMutation = useLogin();
+
+  React.useEffect(() => {
+    if (profile) {
+      router.replace('/(tabs)' as any);
+    }
+  }, [profile]);
 
   const handleLogin = () => {
     if (!email.trim() || !password.trim()) {

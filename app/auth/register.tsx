@@ -16,10 +16,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, SPACING } from '../../constants/theme';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { CustomButton } from '../../components/ui/CustomButton';
-import { useRegister } from '../../hooks/useAuth';
+import { useRegister, useGetProfile } from '../../hooks/useAuth';
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { data: profile } = useGetProfile();
+
+  React.useEffect(() => {
+    if (profile) {
+      router.replace('/(tabs)' as any);
+    }
+  }, [profile]);
   const [accountType, setAccountType] = useState<'CUSTOMER' | 'BUSINESS_OWNER'>('CUSTOMER');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
