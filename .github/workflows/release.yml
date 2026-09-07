@@ -66,7 +66,7 @@ jobs:
       - name: Prebuild & Build Android APK & App Bundle (.aab)
         env:
           NODE_ENV: production
-          EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL || 'https://carwash-api.onrender.com/api/v1' }}
+          EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL || 'https://carwash-apix.onrender.com/api/v1' }}
           EXPO_PUBLIC_TURN_URL: ${{ secrets.EXPO_PUBLIC_TURN_URL }}
           EXPO_PUBLIC_TURN_USERNAME: ${{ secrets.EXPO_PUBLIC_TURN_USERNAME }}
           EXPO_PUBLIC_TURN_PASSWORD: ${{ secrets.EXPO_PUBLIC_TURN_PASSWORD }}
@@ -86,7 +86,7 @@ jobs:
 
       - name: Build Web Export
         env:
-          EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL || 'https://carwash-api.onrender.com/api/v1' }}
+          EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL || 'https://carwash-apix.onrender.com/api/v1' }}
         run: |
           npx expo export --platform web || true
 
