@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "carwashmobileapplication",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
